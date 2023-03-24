@@ -1,0 +1,17 @@
+# This is a generated file; do not edit or check into version control.
+flutter_reactive_ble=/Users/wmacevoy/.pub-cache/hosted/pub.dev/flutter_reactive_ble-5.0.3/
+location=/Users/wmacevoy/.pub-cache/hosted/pub.dev/location-4.4.0/
+location_web=/Users/wmacevoy/.pub-cache/hosted/pub.dev/location_web-3.1.1/
+path_provider_linux=/Users/wmacevoy/.pub-cache/hosted/pub.dev/path_provider_linux-2.1.10/
+path_provider_windows=/Users/wmacevoy/.pub-cache/hosted/pub.dev/path_provider_windows-2.1.5/
+permission_handler=/Users/wmacevoy/.pub-cache/hosted/pub.dev/permission_handler-10.2.0/
+permission_handler_android=/Users/wmacevoy/.pub-cache/hosted/pub.dev/permission_handler_android-10.2.0/
+permission_handler_apple=/Users/wmacevoy/.pub-cache/hosted/pub.dev/permission_handler_apple-9.0.7/
+permission_handler_windows=/Users/wmacevoy/.pub-cache/hosted/pub.dev/permission_handler_windows-0.1.2/
+reactive_ble_mobile=/Users/wmacevoy/.pub-cache/hosted/pub.dev/reactive_ble_mobile-5.0.3/
+shared_preferences=/Users/wmacevoy/.pub-cache/hosted/pub.dev/shared_preferences-2.0.20/
+shared_preferences_android=/Users/wmacevoy/.pub-cache/hosted/pub.dev/shared_preferences_android-2.0.17/
+shared_preferences_foundation=/Users/wmacevoy/.pub-cache/hosted/pub.dev/shared_preferences_foundation-2.1.5/
+shared_preferences_linux=/Users/wmacevoy/.pub-cache/hosted/pub.dev/shared_preferences_linux-2.1.5/
+shared_preferences_web=/Users/wmacevoy/.pub-cache/hosted/pub.dev/shared_preferences_web-2.0.6/
+shared_preferences_windows=/Users/wmacevoy/.pub-cache/hosted/pub.dev/shared_preferences_windows-2.1.5/

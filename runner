@@ -1,0 +1,35 @@
+#!/bin/bash
+
+SCRIPT_DIR="$( cd -- "$( dirname -- "${BASH_SOURCE[0]}" )" &> /dev/null && pwd )"
+GIT_DIR="$(git rev-parse --show-toplevel)"
+
+if [ -z ${FLUTTER_DIR+x} ]
+then
+    for FLUTTER_DIR in "$SCRIPT_DIR/env/flutter" "$GIT_DIR/env/flutter" "$GIT_DIR/../flutter"
+    do
+	if [ -x "$FLUTTER_DIR/bin/flutter" -a -x "$FLUTTER_DIR/bin/dart" ]
+	then
+	    break
+	fi
+    done
+fi
+if [ -z ${FLUTTER_DIR+x} -o ! \( -x "$FLUTTER_DIR/bin/flutter" -a -x "$FLUTTER_DIR/bin/dart" \) ]
+then
+    echo "Cannot find flutter install in '$SCRIPT_DIR/env/flutter', '$GIT_DIR/env/flutter', or '$GIT_DIR/../flutter'"
+    exit 1
+fi
+
+export ANDROID_SDK="${HOME}/Library/Android/sdk"
+export JAVA_HOME="/Applications/Android Studio.app/Contents/jbr/Contents/Home"
+export ANDROID_SDK_MANAGER="$ANDROID_SDK/tools/bin/sdkmanager"
+
+for dir in "$FLUTTER_DIR/bin" "$ANDROID_SDK/tools" "$ANDROID_SDK/tools/bin" "$ANDROID_SDK/platform-tools" "$FLUTTER_DIR/bin"
+do
+    if [[ ":$PATH:" != *":$dir:"* ]]
+    then
+        PATH="$dir:$PATH"
+    fi
+done
+
+"$(basename "$0")" "$@"
+
