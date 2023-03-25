@@ -1,13 +1,11 @@
-import 'dart:async';
 import 'dart:io';
 import 'dart:convert';
 
 import 'dart:math';
 import 'package:test/test.dart';
-import 'near.dart';
 import 'locations.dart';
 import 'package:geopoint/src/geopoint.dart';
-import 'package:geopoint/src/measure.dart';
+import 'package:geopoint/src/measure.dart' as measure;
 
 // https://geographiclib.sourceforge.io/C++/doc/geodesic.html#testgeod
 
@@ -22,31 +20,30 @@ class Rec {
 //  arc distance on the auxiliary sphere, a12 (degrees, accurate to 10−18 deg)
 //  reduced length of the geodesic, m12 (meters, accurate to 0.1 pm)
 //  the area under the geodesic, S12 (m2, accurate to 1 mm2)
-  Rec();
 
   int row = 0;
-  final Geopoint a = Geopoint(
-      latitude: Angle.fromDegrees(0),
-      longitude: Angle.fromDegrees(0),
-      elevation: Distance.fromMeters(0));
-  final Angle aAzimuth = Angle.fromDegrees(0);
-  final Geopoint b = Geopoint(
-      latitude: Angle.fromDegrees(0),
-      longitude: Angle.fromDegrees(0),
-      elevation: Distance.fromMeters(0));
-  final Angle bAzimuth = Angle.fromDegrees(0);
-  final Distance geodesic = Distance.fromMeters(0);
-  final Distance arcdist = Distance.fromMeters(0);
-  final Distance reduced = Distance.fromMeters(0);
+  final Geopoint a;
+  final measure.Angle aAzimuth = measure.Angle.fromDegrees(0);
+  final Geopoint b;
+  final measure.Angle bAzimuth = measure.Angle.fromDegrees(0);
+  final measure.Distance geodesic = measure.Distance.fromMeters(0);
+  final measure.Distance arcdist = measure.Distance.fromMeters(0);
+  final measure.Distance reduced = measure.Distance.fromMeters(0);
   double areaM2 = 0.0;
+
+  Rec(Geopoint basis)
+      : a = basis.clone(),
+        b = basis.clone();
 
   set data(List<double> data) {
     int c = 0;
     a.latitude.degrees = data[c++];
     a.longitude.degrees = data[c++];
+    a.elevation.meters = 0.0;
     aAzimuth.degrees = data[c++];
     b.latitude.degrees = data[c++];
     b.longitude.degrees = data[c++];
+    b.elevation.meters = 0.0;
     bAzimuth.degrees = data[c++];
     geodesic.meters = data[c++];
     arcdist.meters = data[c++];
@@ -64,17 +61,16 @@ class Rec {
     for (String strCol in strCols) {
       cols.add(double.parse(strCol));
     }
-
     data = cols;
     test();
   }
 
   void test() {
     double expect = geodesic.meters;
-    int bin = (log(expect) / ln10).toInt();
+    int bin = log(expect) ~/ ln10;
     double oldMax = maxRelErrors[bin] ?? 0.0;
     int oldCount = counts[bin] ?? 0;
-    double ab = a.spheroidalDistanceInMeters(b);
+    double ab = a.distanceToInMeters(b);
     double relErr = (ab - expect).abs() / expect;
     maxRelErrors[bin] = max(oldMax, relErr);
     counts[bin] = oldCount + 1;
@@ -104,22 +100,16 @@ class Rec {
 
 testGeopointDist() {
   test('max relative error < 1e-7 for dist 1 cm ... 1,000 km', () async {
-    var rec = Rec();
-    var rnd = Random();
-//    rec.maxDistMeters =
-//        (1.0 / 12.0) * (2.0 * pi * Geopoint.mean_earth_radius_in_meters * pi);
+    var rec = Rec(locations("grand junction, colorado").ellipseoid());
     var fileName = "test/data/GeodTest.dat";
     var file = File(fileName);
     expect(await file.exists(), equals(true));
 
     var lines =
         file.openRead().transform(utf8.decoder).transform(const LineSplitter());
-
-    int p = 100; // percent of lines to process (speedup)
+    Random rng = Random();
     await lines.forEach((line) {
-      if (rnd.nextInt(100) < p) {
-        rec.process(line);
-      }
+      if (rng.nextInt(100) < 10) rec.process(line);
     });
 
     List<int> bins = rec.maxRelErrors.keys.toList();
@@ -150,7 +140,7 @@ testGeopointDist() {
 
     // less than 2e-3 rel error for all tests
     expect(reAll, lessThan(2e-3));
-  });
+  }, timeout: Timeout(Duration(minutes: 1)));
 }
 
 void main() {

@@ -21,13 +21,13 @@ class Geoellipseoid extends Geopoint {
     double lambda = longitude.radians;
     double h = elevation.meters;
 
-    final double chi =
+    final double R =
         semi_major_axis_in_meters / sqrt(1 - eccentricity2 * pow(sin(phi), 2));
-    final double r = (chi + h) * cos(phi);
+    final double r = (R + h) * cos(phi);
     final double x = r * cos(lambda);
     final double y = r * sin(lambda);
     final double z =
-        (chi * pow(1 - reciprocal_flattening, 2) + elevation.meters) * sin(phi);
+        (R * pow(1 - reciprocal_flattening, 2) + elevation.meters) * sin(phi);
     return Vector3(x, y, z);
   }
 
@@ -72,74 +72,81 @@ class Geoellipseoid extends Geopoint {
   }
 
   @override
-  void setFromMidpoint(Geopoint p, Geopoint q) {
-    final a = p.ellipseoid().toXYZ();
-    final b = q.ellipseoid().toXYZ();
-    final double w = a.distanceTo(b);
-    if (w < 1.95 * semi_major_axis_in_meters) {
-      final c = Vector3(
-          (a[0] + b[0]) / 2.0, (a[1] + b[1]) / 2.0, (a[2] + b[2]) / 2.0);
-      c.scale(Geosphere.mean_earth_radius_in_meters / c.length);
-      setFromXYZ(c);
-      elevation.meters = (elevation.meters + p.elevation.meters) / 2.0;
-    } else {
-      sphere().setFromMidpoint(p.sphere(), q.sphere());
-    }
-  }
-
-  @override
-  double distanceToInMeters(Geopoint to) {
-    final eTo = to.ellipseoid();
-    final a = toXYZ();
-    final b = eTo.toXYZ();
-    final double w = a.distanceTo(b);
-    final m = Geoellipseoid.fromMidpoint(this, eTo);
-    if (w > 1.95 * semi_major_axis_in_meters) {
-      Geosphere sphereFrom = Geosphere(
-          latitude: latitude, longitude: longitude, elevation: elevation);
-      Geosphere sphereTo = Geosphere(
-          latitude: to.latitude,
-          longitude: to.longitude,
-          elevation: to.elevation);
-      Geosphere sphereMidpoint = Geosphere.fromMidpoint(sphereFrom, sphereTo);
-      Geoellipseoid sphereoidMidpoint = Geoellipseoid(
-          latitude: sphereMidpoint.latitude,
-          longitude: sphereMidpoint.latitude,
-          elevation: sphereMidpoint.elevation);
-
-      Distance d = distanceTo(sphereoidMidpoint);
-      d.meters += sphereoidMidpoint.distanceTo(to).meters;
-      return d;
-    }
-
-    // c is the midpoint of the line segment (a,b)
+  void setFromMidpoint(Geopoint gp, Geopoint gq) {
+    final p = gp.ellipseoid();
+    final q = gq.ellipseoid();
+    final a = p.toXYZ();
+    final b = q.toXYZ();
     final c =
         Vector3((a[0] + b[0]) / 2.0, (a[1] + b[1]) / 2.0, (a[2] + b[2]) / 2.0);
-    // find c in speroidal coordinates
-    Geoellipseoid gc = Geoellipseoid.fromXYZ(c);
-    // adjust the elevation to the middle of the two points.
-    gc.elevation.meters = (elevation.meters + p.elevation.meters) / 2.0;
-
-    final d = gc.toXYZ();
-
-    double h = d.distanceTo(c);
-    double el = arcSegmentLength(w, h);
-
-    // return el < mean_earth_radius_in_meters
-    //     ? el
-    //     : spheroidalDistanceInMeters(gc) + gc.spheroidalDistanceInMeters(p);
-  }
-
-  static double arcSegmentLength(double w, double h) {
-    double x = ((h * w) / (pow(w / 2.0, 2) + pow(h, 2)).toDouble()).abs();
-
-    double u;
-    if (x < 1e-3) {
-      u = (3.0 / 40.0) * pow(x, 6) + (1.0 / 6.0) * pow(x, 2) + 1.0;
+    final cLen = c.length;
+    if (cLen > 2 * (semi_major_axis_in_meters - semi_minor_axis_in_meters)) {
+      c.scale(Geosphere.mean_earth_radius_in_meters / cLen);
+      setFromXYZ(c);
+      elevation.meters = (p.elevation.meters + q.elevation.meters) / 2.0;
     } else {
-      u = (x < 1 ? asin(x) : pi / 2) / x;
+      Geoellipseoid flatten(Geopoint p) {
+        return p.elevation.meters == 0
+            ? p.ellipseoid()
+            : Geoellipseoid(
+                latitude: latitude,
+                longitude: longitude,
+                elevation: Distance.fromMeters(0));
+      }
+
+      final p0 = flatten(p);
+      final q0 = flatten(q);
+      final sn = (p0.toXYZ() - q0.toXYZ()).normalized();
+      final m0 = Geosphere.fromMidpoint(p0, q0).toXYZ();
+
+      int paths = 360;
+      final dists = <double>[];
+
+      Geoellipseoid M(double theta) {
+        final m = m0.clone();
+        m.applyAxisAngle(sn, theta);
+        final em = Geoellipseoid.fromXYZ(m);
+        em.elevation.meters = 0;
+        return em;
+      }
+
+      double D(double theta) {
+        final em = M(theta);
+        return p0.distanceToInMeters(em) + em.distanceToInMeters(q0);
+      }
+
+      for (var path = 0; path < paths; ++path) {
+        final m = m0.clone();
+        double theta = (2 * pi * path) / paths;
+        dists.add(D(theta));
+      }
+
+      double minDist = 4 * Geosphere.mean_earth_radius_in_meters;
+      double minTheta = 0;
+      Geoellipseoid? minM;
+
+      for (var path = 0; path < paths; ++path) {
+        if (dists[path] < dists[(path + 1) % paths] &&
+            dists[path] < dists[(path + paths - 1) % paths]) {
+          double theta0 = (2 * pi * (path - 1)) / paths;
+          double theta1 = (2 * pi * (path - 1)) / paths;
+          double theta = goldenSectionMinimize(D, theta0, theta1, 1e-4);
+          final m = M(theta);
+          double d = p0.distanceToInMeters(m) + m.distanceToInMeters(q0);
+          if (d < minDist) {
+            minDist = d;
+            minTheta = theta;
+            minM = m;
+          }
+        }
+      }
+      if (minM == null) {
+        throw StateError("no minimum found");
+      }
+      latitude.radians = minM.latitude.radians;
+      longitude.radians = minM.longitude.radians;
+      elevation.meters = (p.elevation.meters + q.elevation.meters) / 2;
     }
-    return w * u;
   }
 
   Geoellipseoid(
@@ -155,20 +162,20 @@ class Geoellipseoid extends Geopoint {
     setFromXYZ(XYZ);
   }
 
-  Geoellipseoid.fromMidpoint(Geoellipseoid p, Geoellipseoid q)
+  Geoellipseoid.fromMidpoint(Geopoint p, Geopoint q)
       : super(
             latitude: Angle.fromRadians(0),
             longitude: Angle.fromRadians(0),
             elevation: Distance.fromMeters(0)) {
-    setFromMidpoint(this, p, q);
+    setFromMidpoint(p, q);
   }
 
   @override
-  Geoellipseoid clone() => Geoellipseoid(
-      latitude: latitude, longitude: longitude, elevation: elevation);
-  @override
-  Geosphere sphere() =>
-      Geosphere(latitude: latitude, longitude: longitude, elevation: elevation);
-  @override
   Geoellipseoid ellipseoid() => this;
+
+  @override
+  Geoellipseoid clone() => Geoellipseoid(
+      latitude: Angle.fromRadians(latitude.radians),
+      longitude: Angle.fromRadians(longitude.radians),
+      elevation: Distance.fromMeters(elevation.meters));
 }

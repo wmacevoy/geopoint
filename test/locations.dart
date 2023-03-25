@@ -1,3 +1,4 @@
+import 'package:geopoint/src/geoellipseoid.dart';
 import 'package:geopoint/src/measure.dart';
 import 'package:geopoint/src/geopoint.dart';
 
@@ -11,40 +12,40 @@ List<String> places() {
   ];
 }
 
-Geopoint locations(String city) {
+Geoellipseoid locations(String city) {
   switch (city) {
     case "portland, oregon":
-      return Geopoint(
+      return Geoellipseoid(
           latitude: Angle.fromDegMinSec(45, 32, 13),
           longitude: Angle.fromDegMinSec(-122, 39, 0),
           elevation: Distance.fromFeet(50));
     case "grand junction, colorado":
-      return Geopoint(
+      return Geoellipseoid(
           latitude: Angle.fromDegMinSec(39, 5, 11),
           longitude: Angle.fromDegMinSec(-108, 34, 7),
           elevation: Distance.fromFeet(4583));
     case "salt lake city, utah":
-      return Geopoint(
+      return Geoellipseoid(
           latitude: Angle.fromDegMinSec(40, 46, 43),
           longitude: Angle.fromDegMinSec(-111, 55, 53),
           elevation: Distance.fromFeet(4226));
     case "montrose, colorado":
-      return Geopoint(
+      return Geoellipseoid(
           latitude: Angle.fromDegMinSec(38, 28, 9),
           longitude: Angle.fromDegMinSec(-107, 51, 38),
           elevation: Distance.fromFeet(5807));
     case "paris, france":
-      return Geopoint(
+      return Geoellipseoid(
           latitude: Angle.fromDegMinSec(48, 51, 36),
           longitude: Angle.fromDegMinSec(2, 20, 24),
           elevation: Distance.fromMeters(35));
     case "flindlers peak, australia":
-      return Geopoint(
+      return Geoellipseoid(
           latitude: Angle.fromDegMinSec(-37, 57, 3.72030),
           longitude: Angle.fromDegMinSec(144, 25, 29.52440),
           elevation: Distance.fromMeters(0.0));
     case "buninyong, australia":
-      return Geopoint(
+      return Geoellipseoid(
           latitude: Angle.fromDegMinSec(-37, 39, 10.15610),
           longitude: Angle.fromDegMinSec(143, 55, 35.38390),
           elevation: Distance.fromMeters(0.0));

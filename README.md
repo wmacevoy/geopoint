@@ -1,4 +1,4 @@
-# geopoint
+# Geopoint
 Accurate dart wgs84 geometery
 
 # Reason

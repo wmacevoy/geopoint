@@ -1011,16 +1011,32 @@ class Angle extends FromToMap with Measure {
     return math.sin(radians);
   }
 
+  set sin(double s) {
+    radians = math.asin(s);
+  }
+
   Angle.fromSin(double s) : this.fromRadians(math.asin(s));
 
   double get cos {
     return math.cos(radians);
   }
 
+  set cos(double c) {
+    radians = math.acos(c);
+  }
+
   Angle.fromCos(double c) : this.fromRadians(math.acos(c));
 
   double get tan {
     return math.tan(radians);
+  }
+
+  set tan(double t) {
+    radians = math.atan(t);
+  }
+
+  atan2(double y, double x) {
+    radians = math.atan2(y, x);
   }
 
   Angle.fromTan(double t) : this.fromRadians(math.atan(t));
