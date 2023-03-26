@@ -10,6 +10,43 @@ import 'package:intl/intl.dart';
 
 // https://geographiclib.sourceforge.io/C++/doc/geodesic.html#testgeod
 
+int pwr(double x, {int digits = 1}) {
+  var xStr = x.toStringAsExponential(max(0, digits));
+  return int.parse(xStr.substring(xStr.indexOf('e') + 1));
+}
+
+String man(double x, {int digits = 1}) {
+  var xStr = x.toStringAsExponential(max(0, digits));
+  var m = xStr.substring(0, xStr.indexOf('e'));
+  if (digits == -1 && m == "1") return "";
+  return "${m}×";
+}
+
+String sci(num x, {int digits = 1}) {
+  double y = x.toDouble();
+  return "${man(y, digits: digits)}10<sup>${pwr(y, digits: digits)}</sup>";
+}
+
+num? maxVal(Iterable<num> all) {
+  num? ans;
+  for (num x in all) {
+    if (ans == null || ans < x) {
+      ans = x;
+    }
+  }
+  return ans;
+}
+
+num? minVal(Iterable<num> all) {
+  num? ans;
+  for (num x in all) {
+    if (ans == null || ans > x) {
+      ans = x;
+    }
+  }
+  return ans;
+}
+
 class Rec {
 //  latitude at point 1, lat1 (degrees, exact)
 //  longitude at point 1, lon1 (degrees, always 0)
@@ -88,28 +125,9 @@ class Rec {
     maxResErrors[bin] = err / geodesic.meters;
   }
 
-  int pwr(num x) {
-    x = x.abs();
-    int p = 0;
-    if (x == 0) return p;
-
-    if (x < 1) {
-      while (x < 1) {
-        x *= 10;
-        --p;
-      }
-    } else if (x >= 10) {
-      while (x >= 10) {
-        x /= 10.0;
-        ++p;
-      }
-    }
-    return p;
-  }
-
   void test() {
     double expect = geodesic.meters;
-    bin = pwr(expect);
+    bin = pwr(expect, digits: 0);
     double oldMax = maxRelErrors[bin] ?? 0.0;
     int oldCount = counts[bin] ?? 0;
     double ab = a.distanceToInMeters(b);
@@ -142,26 +160,6 @@ class Rec {
   }
 }
 
-num? maxVal(Iterable<num> all) {
-  num? ans;
-  for (num x in all) {
-    if (ans == null || ans < x) {
-      ans = x;
-    }
-  }
-  return ans;
-}
-
-num? minVal(Iterable<num> all) {
-  num? ans;
-  for (num x in all) {
-    if (ans == null || ans > x) {
-      ans = x;
-    }
-  }
-  return ans;
-}
-
 double testErr(bool sphere) => sphere ? 1e-2 : 1e-5;
 Future<void> testAll(bool sphere) async {
   final place = locations("grand junction, colorado").ellipseoid();
@@ -180,29 +178,24 @@ Future<void> testAll(bool sphere) async {
   });
 
   List<int> bins = rec.maxRelErrors.keys.toList();
-  bins.sort();
-  String sci(num x) {
-    int pwr = (log(x.abs()) / ln10).floor();
-    double man = (((x / pow(10, pwr)) * 10.0).ceil() / 10.0);
-    return "${man.toStringAsFixed(1)}×10<sup>${pwr}</sup>";
-  }
 
   var formatter = NumberFormat.decimalPattern();
+
   for (var bin in bins) {
     var re = rec.maxRelErrors[bin] ?? 0;
     var de = rec.maxResErrors[bin] ?? 0;
 
     print(
-        "| ${sci(re)} | ${sci(de)} | ${sci(pow(10.0, bin))} m ≤ d < ${sci(pow(10.0, bin + 1))} m  | ${formatter.format(rec.counts[bin])} |");
+        "| ${sci(re)} | ${sci(de)} | ${sci(pow(10.0, bin), digits: -1)} m ≤ d < ${sci(pow(10.0, bin + 1), digits: -1)} m  | ${formatter.format(rec.counts[bin])} |");
   }
 
   int minBin = minVal(rec.maxRelErrors.keys) as int;
   int maxBin = (maxVal(rec.maxRelErrors.keys) as int);
-  double re = rec.maxRelErrorsInRange(minBin, maxBin);
-  int c = rec.countInRange(minBin, maxBin);
+  double re = rec.maxRelErrorsInRange(minBin, maxBin + 1);
+  int c = rec.countInRange(minBin, maxBin + 1);
   final cstr = formatter.format(c);
   print(
-      "${sci(re)} | ${sci(pow(10.0, minBin))} m ≤ d < ${sci(pow(10.0, maxBin + 1))} m  | ${cstr}");
+      "| |${sci(re)} | ${sci(pow(10.0, minBin), digits: -1)} m ≤ d < ${sci(pow(10.0, maxBin + 1), digits: -1)} m  | ${cstr}");
 
   // less than 1e-7 rel err for 0.01 m (1cm) .. 1,000,000 m (1,000 km)
   expect(re, lessThan(err));
