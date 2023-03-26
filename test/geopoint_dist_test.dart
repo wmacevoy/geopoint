@@ -178,6 +178,7 @@ Future<void> testAll(bool sphere) async {
   });
 
   List<int> bins = rec.maxRelErrors.keys.toList();
+  bins.sort();
 
   var formatter = NumberFormat.decimalPattern();
 
@@ -195,7 +196,7 @@ Future<void> testAll(bool sphere) async {
   int c = rec.countInRange(minBin, maxBin + 1);
   final cstr = formatter.format(c);
   print(
-      "| |${sci(re)} | ${sci(pow(10.0, minBin), digits: -1)} m ≤ d < ${sci(pow(10.0, maxBin + 1), digits: -1)} m  | ${cstr}");
+      "| ${sci(re)} | | ${sci(pow(10.0, minBin), digits: -1)} m ≤ d < ${sci(pow(10.0, maxBin + 1), digits: -1)} m  | ${cstr}");
 
   // less than 1e-7 rel err for 0.01 m (1cm) .. 1,000,000 m (1,000 km)
   expect(re, lessThan(err));
