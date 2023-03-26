@@ -21,8 +21,9 @@ class Rec {
 //  arc distance on the auxiliary sphere, a12 (degrees, accurate to 10−18 deg)
 //  reduced length of the geodesic, m12 (meters, accurate to 0.1 pm)
 //  the area under the geodesic, S12 (m2, accurate to 1 mm2)
-
+  double eps;
   int row = 0;
+
   final Geopoint a;
   final measure.Angle aAzimuth = measure.Angle.fromDegrees(0);
   final Geopoint b;
@@ -31,10 +32,16 @@ class Rec {
   final measure.Distance arcdist = measure.Distance.fromMeters(0);
   final measure.Distance reduced = measure.Distance.fromMeters(0);
   double areaM2 = 0.0;
-
+  int bin;
   Rec(Geopoint basis)
       : a = basis.clone(),
-        b = basis.clone();
+        b = basis.clone(),
+        eps = 1,
+        bin = 0 {
+    while (1 + eps / 2 != 1) {
+      eps = eps / 2;
+    }
+  }
 
   set data(List<double> data) {
     int c = 0;
@@ -54,6 +61,7 @@ class Rec {
 
   int tests = 0;
   Map<int, double> maxRelErrors = Map<int, double>();
+  Map<int, double> maxResErrors = Map<int, double>();
   Map<int, int> counts = Map<int, int>();
 
   void process(String line) {
@@ -66,12 +74,47 @@ class Rec {
     test();
   }
 
+  void resErr(Geopoint p) {
+    final xyz = p.toXYZ();
+    final q = p.clone();
+    double err = 0;
+    for (var dlat in [1 - eps, 1 + eps]) {
+      for (var dlon in [1 - eps, 1 + eps]) {
+        q.latitude.radians = p.latitude.radians * dlat;
+        q.longitude.radians = p.longitude.radians * dlon;
+        err = max(err, q.toXYZ().distanceTo(xyz));
+      }
+    }
+    maxResErrors[bin] = err / geodesic.meters;
+  }
+
+  int pwr(num x) {
+    x = x.abs();
+    int p = 0;
+    if (x == 0) return p;
+
+    if (x < 1) {
+      while (x < 1) {
+        x *= 10;
+        --p;
+      }
+    } else if (x >= 10) {
+      while (x >= 10) {
+        x /= 10.0;
+        ++p;
+      }
+    }
+    return p;
+  }
+
   void test() {
     double expect = geodesic.meters;
-    int bin = log(expect) ~/ ln10;
+    bin = pwr(expect);
     double oldMax = maxRelErrors[bin] ?? 0.0;
     int oldCount = counts[bin] ?? 0;
     double ab = a.distanceToInMeters(b);
+    resErr(a);
+    resErr(b);
     double relErr = (ab - expect).abs() / expect;
     maxRelErrors[bin] = max(oldMax, relErr);
     counts[bin] = oldCount + 1;
@@ -144,18 +187,19 @@ Future<void> testAll(bool sphere) async {
     return "${man.toStringAsFixed(1)}×10<sup>${pwr}</sup>";
   }
 
+  var formatter = NumberFormat.decimalPattern();
   for (var bin in bins) {
     var re = rec.maxRelErrors[bin] ?? 0;
+    var de = rec.maxResErrors[bin] ?? 0;
 
     print(
-        "${sci(re)} | ${sci(pow(10.0, bin))} m ≤ d < ${sci(pow(10.0, bin + 1))} m  | ${rec.counts[bin]}");
+        "| ${sci(re)} | ${sci(de)} | ${sci(pow(10.0, bin))} m ≤ d < ${sci(pow(10.0, bin + 1))} m  | ${formatter.format(rec.counts[bin])} |");
   }
 
   int minBin = minVal(rec.maxRelErrors.keys) as int;
   int maxBin = (maxVal(rec.maxRelErrors.keys) as int);
   double re = rec.maxRelErrorsInRange(minBin, maxBin);
   int c = rec.countInRange(minBin, maxBin);
-  var formatter = NumberFormat.decimalPattern();
   final cstr = formatter.format(c);
   print(
       "${sci(re)} | ${sci(pow(10.0, minBin))} m ≤ d < ${sci(pow(10.0, maxBin + 1))} m  | ${cstr}");
@@ -165,7 +209,7 @@ Future<void> testAll(bool sphere) async {
 }
 
 testGeopointDist() {
-  test('max ellispeoid relative error < 1e-5 for dist 1 mm or greater',
+  test('max ellipseoid relative error < 1e-5 for dist 1 mm or greater',
       () async {
     final sphere = false;
     expect(testErr(sphere), lessThanOrEqualTo(1e-5));
