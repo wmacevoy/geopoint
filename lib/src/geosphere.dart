@@ -7,8 +7,9 @@ import 'package:geopoint/src/geopoint.dart';
 
 class Geosphere extends Geopoint {
   static const double mean_earth_radius_in_meters = 6371008.8;
+
   @override
-  void setFromMidpoint(Geopoint p, Geopoint q) {
+  void implSetFromMidpoint(Geopoint p, Geopoint q) {
     double dlambda = q.longitude.radians - p.longitude.radians;
     double b = q.latitude.cos;
     double bx = b * cos(dlambda);
@@ -45,14 +46,6 @@ class Geosphere extends Geopoint {
             longitude: Angle.fromRadians(0),
             elevation: Distance.fromMeters(0)) {
     setFromXYZ(XYZ);
-  }
-
-  Geosphere.fromMidpoint(Geopoint p, Geopoint q)
-      : super(
-            latitude: Angle.fromRadians(0),
-            longitude: Angle.fromRadians(0),
-            elevation: Distance.fromMeters(0)) {
-    setFromMidpoint(p, q);
   }
 
   @override

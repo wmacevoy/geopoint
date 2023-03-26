@@ -8,7 +8,11 @@ List<String> places() {
     "grand junction, colorado",
     "salt lake city, utah",
     "paris, france",
-    "montrose, colorado"
+    "montrose, colorado",
+    "north",
+    "east",
+    "west",
+    "south",
   ];
 }
 
@@ -48,6 +52,26 @@ Geoellipseoid locations(String city) {
       return Geoellipseoid(
           latitude: Angle.fromDegMinSec(-37, 39, 10.15610),
           longitude: Angle.fromDegMinSec(143, 55, 35.38390),
+          elevation: Distance.fromMeters(0.0));
+    case "north":
+      return Geoellipseoid(
+          latitude: Angle.fromDegMinSec(90, 0, 0),
+          longitude: Angle.fromDegMinSec(0, 0, 0),
+          elevation: Distance.fromMeters(0.0));
+    case "south":
+      return Geoellipseoid(
+          latitude: Angle.fromDegMinSec(-90, 0, 0),
+          longitude: Angle.fromDegMinSec(0, 0, 0),
+          elevation: Distance.fromMeters(0.0));
+    case "east":
+      return Geoellipseoid(
+          latitude: Angle.fromDegMinSec(0, 0, 0),
+          longitude: Angle.fromDegMinSec(90, 0, 0),
+          elevation: Distance.fromMeters(0.0));
+    case "west":
+      return Geoellipseoid(
+          latitude: Angle.fromDegMinSec(0, 0, 0),
+          longitude: Angle.fromDegMinSec(-90, 0, 0),
           elevation: Distance.fromMeters(0.0));
   }
   throw Exception("no such city");

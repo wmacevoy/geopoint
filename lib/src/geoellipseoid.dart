@@ -54,9 +54,11 @@ class Geoellipseoid extends Geopoint {
     double P = F / (3.0 * pow(G * (s + 1.0 / s + 1.0), 2));
     double Q = sqrt(1.0 + 2.0 * e2 * e2 * P);
     double ro = -(e2 * P * r) / (1 + Q) +
-        sqrt((a * a / 2) * (1 + 1 / Q) -
-            ((1 - e2) * P * z * z) / (Q * (1 + Q)) -
-            P * r2 / 2);
+        sqrt(max(
+            0,
+            ((a * a / 2) * (1 + 1 / Q) -
+                ((1 - e2) * P * z * z) / (Q * (1 + Q)) -
+                P * r2 / 2)));
     double tmp = pow(r - e2 * ro, 2).toDouble();
     double U = sqrt(tmp + z * z);
     double V = sqrt(tmp + (1 - e2) * z * z);
@@ -72,7 +74,7 @@ class Geoellipseoid extends Geopoint {
   }
 
   @override
-  void setFromMidpoint(Geopoint gp, Geopoint gq) {
+  void implSetFromMidpoint(Geopoint gp, Geopoint gq) {
     final p = gp.ellipseoid();
     final q = gq.ellipseoid();
     final a = p.toXYZ();
@@ -80,7 +82,7 @@ class Geoellipseoid extends Geopoint {
     final c =
         Vector3((a[0] + b[0]) / 2.0, (a[1] + b[1]) / 2.0, (a[2] + b[2]) / 2.0);
     final cLen = c.length;
-    if (cLen > 2 * (semi_major_axis_in_meters - semi_minor_axis_in_meters)) {
+    if (cLen > 80 * (semi_major_axis_in_meters - semi_minor_axis_in_meters)) {
       c.scale(Geosphere.mean_earth_radius_in_meters / cLen);
       setFromXYZ(c);
       elevation.meters = (p.elevation.meters + q.elevation.meters) / 2.0;
@@ -97,9 +99,14 @@ class Geoellipseoid extends Geopoint {
       final p0 = flatten(p);
       final q0 = flatten(q);
       final sn = (p0.toXYZ() - q0.toXYZ()).normalized();
-      final m0 = Geosphere.fromMidpoint(p0, q0).toXYZ();
+      final s0 = Geosphere(
+          latitude: Angle.fromRadians(0),
+          longitude: Angle.fromRadians(0),
+          elevation: Distance.fromMeters(0));
+      s0.implSetFromMidpoint(p0, q0);
+      final m0 = s0.toXYZ();
 
-      int paths = 360;
+      int paths = 5;
       final dists = <double>[];
 
       Geoellipseoid M(double theta) {
@@ -126,11 +133,12 @@ class Geoellipseoid extends Geopoint {
       Geoellipseoid? minM;
 
       for (var path = 0; path < paths; ++path) {
-        if (dists[path] < dists[(path + 1) % paths] &&
-            dists[path] < dists[(path + paths - 1) % paths]) {
-          double theta0 = (2 * pi * (path - 1)) / paths;
-          double theta1 = (2 * pi * (path - 1)) / paths;
-          double theta = goldenSectionMinimize(D, theta0, theta1, 1e-4);
+        int m1 = (path + paths - 1) % paths;
+        int p1 = (path + 1) % paths;
+        if (dists[path] <= dists[p1] && dists[path] <= dists[m1]) {
+          double thetam1 = (2 * pi * (path - 1)) / paths;
+          double thetap1 = (2 * pi * (path + 1)) / paths;
+          double theta = goldenSectionMinimize(D, thetam1, thetap1, 1e-3);
           final m = M(theta);
           double d = p0.distanceToInMeters(m) + m.distanceToInMeters(q0);
           if (d < minDist) {
@@ -160,14 +168,6 @@ class Geoellipseoid extends Geopoint {
             longitude: Angle.fromRadians(0),
             elevation: Distance.fromMeters(0)) {
     setFromXYZ(XYZ);
-  }
-
-  Geoellipseoid.fromMidpoint(Geopoint p, Geopoint q)
-      : super(
-            latitude: Angle.fromRadians(0),
-            longitude: Angle.fromRadians(0),
-            elevation: Distance.fromMeters(0)) {
-    setFromMidpoint(p, q);
   }
 
   @override

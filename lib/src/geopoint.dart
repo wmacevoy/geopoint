@@ -4,22 +4,6 @@ import 'package:geopoint/src/measure.dart';
 import 'package:geopoint/src/geoellipseoid.dart';
 import 'package:geopoint/src/geosphere.dart';
 
-// use asin for theta <= pi/2
-const double _maxH = (1.4142135623730951 - 1) / 2.0; // (sqrt(2)-1)/2
-double arcSegmentLength(double chord, double height) {
-  if (chord + height == chord) return chord;
-  final h = (height / chord).abs();
-  if (h <= _maxH) {
-    double x = h / (0.25 + pow(h, 2));
-    double u = asin(x) / x;
-    return chord * u;
-  } else {
-    double r = (0.25 + pow(h, 2)) / (2 * h);
-    double theta = 2 * atan2(0.5, r - h);
-    return chord * r * theta;
-  }
-}
-
 const double _inverseGoldenRatio = 0.618033988749895; // (sqrt(5) - 1) / 2
 const double _inverseGoldenRatio2 = 0.3819660112501051; // (3-sqrt(5)) / 2
 
@@ -67,6 +51,22 @@ double goldenSectionMinimize(
   }
 }
 
+// use asin for theta <= pi/2
+double arcSegmentLength(double chord, double height) {
+  const double maxH = (1.4142135623730951 - 1) / 2.0; // (sqrt(2)-1)/2
+  if (chord + height == chord) return chord;
+  final h = (height / chord).abs();
+  if (h <= maxH) {
+    double x = h / (0.25 + pow(h, 2));
+    double u = asin(x) / x;
+    return chord * u;
+  } else {
+    double r = (0.25 + pow(h, 2)) / (2 * h);
+    double theta = 2 * atan2(0.5, r - h);
+    return chord * r * theta;
+  }
+}
+
 abstract class Geopoint {
   Angle latitude;
   Angle longitude;
@@ -92,7 +92,7 @@ abstract class Geopoint {
       return arcSegmentLength(chord, height);
     } else {
       final midpoint = clone();
-      midpoint.setFromMidpoint(this, to);
+      midpoint.implSetFromMidpoint(this, to);
       return distanceToInMeters(midpoint) + midpoint.distanceToInMeters(to);
     }
   }
@@ -101,7 +101,7 @@ abstract class Geopoint {
     return Distance.fromMeters(distanceToInMeters(to));
   }
 
-  void setFromMidpoint(Geopoint p, Geopoint q);
+  void implSetFromMidpoint(Geopoint p, Geopoint q);
   Geopoint clone();
 
   Geosphere sphere() =>

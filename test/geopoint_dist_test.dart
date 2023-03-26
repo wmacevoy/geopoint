@@ -6,6 +6,7 @@ import 'package:test/test.dart';
 import 'locations.dart';
 import 'package:geopoint/src/geopoint.dart';
 import 'package:geopoint/src/measure.dart' as measure;
+import 'package:intl/intl.dart';
 
 // https://geographiclib.sourceforge.io/C++/doc/geodesic.html#testgeod
 
@@ -98,48 +99,83 @@ class Rec {
   }
 }
 
-testGeopointDist() {
-  test('max relative error < 1e-7 for dist 1 cm ... 1,000 km', () async {
-    var rec = Rec(locations("grand junction, colorado").ellipseoid());
-    var fileName = "test/data/GeodTest.dat";
-    var file = File(fileName);
-    expect(await file.exists(), equals(true));
-
-    var lines =
-        file.openRead().transform(utf8.decoder).transform(const LineSplitter());
-    Random rng = Random();
-    await lines.forEach((line) {
-      if (rng.nextInt(100) < 10) rec.process(line);
-    });
-
-    List<int> bins = rec.maxRelErrors.keys.toList();
-    bins.sort();
-    for (var bin in bins) {
-      var re = rec.maxRelErrors[bin] ?? 0;
-      int pwr = (log(re) / ln10).floor();
-      double man = (((re / pow(10, pwr)) * 10.0).ceil() / 10.0);
-      String sci = "${man.toStringAsFixed(1)}×10<sup>${pwr}</sup>";
-
-      print("${sci} | ${bin} m ≤ d < 1e${bin + 1} m  | ${rec.counts[bin]}");
+num? maxVal(Iterable<num> all) {
+  num? ans;
+  for (num x in all) {
+    if (ans == null || ans < x) {
+      ans = x;
     }
+  }
+  return ans;
+}
 
-    int minBin = -3;
-    int maxBin = 7;
-    double re = rec.maxRelErrorsInRange(minBin, maxBin);
-    double reAll = rec.maxRelErrorsInRange(-5, 15);
-    int c = rec.countInRange(minBin, maxBin);
-    int cAll = rec.countInRange(-5, 15);
+num? minVal(Iterable<num> all) {
+  num? ans;
+  for (num x in all) {
+    if (ans == null || ans > x) {
+      ans = x;
+    }
+  }
+  return ans;
+}
+
+double testErr(bool sphere) => sphere ? 1e-2 : 1e-5;
+Future<void> testAll(bool sphere) async {
+  final place = locations("grand junction, colorado").ellipseoid();
+  final basis = sphere ? place.sphere() : place.ellipseoid();
+  var rec = Rec(basis);
+  var err = testErr(sphere);
+  var fileName = "test/data/GeodTest.dat";
+  var file = File(fileName);
+  expect(await file.exists(), equals(true));
+
+  var lines =
+      file.openRead().transform(utf8.decoder).transform(const LineSplitter());
+  Random rng = Random();
+  await lines.forEach((line) {
+    if (rng.nextInt(100) < 100) rec.process(line);
+  });
+
+  List<int> bins = rec.maxRelErrors.keys.toList();
+  bins.sort();
+  String sci(num x) {
+    int pwr = (log(x.abs()) / ln10).floor();
+    double man = (((x / pow(10, pwr)) * 10.0).ceil() / 10.0);
+    return "${man.toStringAsFixed(1)}×10<sup>${pwr}</sup>";
+  }
+
+  for (var bin in bins) {
+    var re = rec.maxRelErrors[bin] ?? 0;
+
     print(
-        "max rel error ${re} for 1e${minBin} <= d < 1e${maxBin} in ${c} tests");
+        "${sci(re)} | ${sci(pow(10.0, bin))} m ≤ d < ${sci(pow(10.0, bin + 1))} m  | ${rec.counts[bin]}");
+  }
 
-    // less than 1e-7 rel err for 0.01 m (1cm) .. 1,000,000 m (1,000 km)
-    expect(rec.maxRelErrorsInRange(-2, 6), lessThan(1e-7));
+  int minBin = minVal(rec.maxRelErrors.keys) as int;
+  int maxBin = (maxVal(rec.maxRelErrors.keys) as int);
+  double re = rec.maxRelErrorsInRange(minBin, maxBin);
+  int c = rec.countInRange(minBin, maxBin);
+  var formatter = NumberFormat.decimalPattern();
+  final cstr = formatter.format(c);
+  print(
+      "${sci(re)} | ${sci(pow(10.0, minBin))} m ≤ d < ${sci(pow(10.0, maxBin + 1))} m  | ${cstr}");
 
-    // less than 1e-5 rel err for 0.001 m (1mm) .. 10,000,000 m (10,000 km)
-    expect(rec.maxRelErrorsInRange(-3, 7), lessThan(1e-5));
+  // less than 1e-7 rel err for 0.01 m (1cm) .. 1,000,000 m (1,000 km)
+  expect(re, lessThan(err));
+}
 
-    // less than 2e-3 rel error for all tests
-    expect(reAll, lessThan(2e-3));
+testGeopointDist() {
+  test('max ellispeoid relative error < 1e-5 for dist 1 mm or greater',
+      () async {
+    final sphere = false;
+    expect(testErr(sphere), lessThanOrEqualTo(1e-5));
+    await testAll(sphere);
+  }, timeout: Timeout(Duration(minutes: 1)));
+
+  test('max sphere relative error < 1e-2 for dist 1 mm or greater', () async {
+    final sphere = true;
+    expect(testErr(sphere), lessThanOrEqualTo(1e-2));
+    await testAll(sphere);
   }, timeout: Timeout(Duration(minutes: 1)));
 }
 

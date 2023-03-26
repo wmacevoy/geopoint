@@ -1,4 +1,5 @@
 import 'dart:math';
+import 'package:geopoint/src/geosphere.dart';
 import 'package:test/test.dart';
 import 'near.dart';
 import 'locations.dart';
@@ -15,10 +16,14 @@ double cosm1(double x) {
 }
 
 void testGoldenSectionMinimize() {
-  test('gsm', () {
-    double f(double x) => pow(x - pi, 2).toDouble();
-    double x = goldenSectionMinimize(f, -1, 7, 1e-10);
-    near(pi, x, eps: 1e-9, relative: true);
+  test('golden section minimize', () {
+    for (double root in <double>[pi, sqrt(2), exp(1), -1, 0, 1, 5]) {
+      for (double eps in <double>[1e-1, 1e-2, 1e-3, 1e-4, 1e-5, 1e-6, 1e-7]) {
+        double f(double x) => (pow(x - root, 2) - pow(root, 2)).toDouble();
+        double x = goldenSectionMinimize(f, -2, 23, eps);
+        near(root, x, eps: eps, relative: false);
+      }
+    }
   });
 }
 
@@ -109,6 +114,30 @@ void testGeopoint() {
     double km = src.distanceToInMeters(dst) / 1000.0;
 
     near(54.972271, km, eps: 1e-7, relative: true);
+  });
+
+  test('from to xyz at north spheroidal', () {
+    for (var spherical in [true, false]) {
+      for (var place in places()) {
+        final location =
+            spherical ? locations(place).sphere() : locations(place);
+        if (place != "north") continue;
+        if (spherical != false) continue;
+        final xyz = location.toXYZ();
+        final fromXYZ = location.clone();
+        fromXYZ.latitude.degrees = 0;
+        fromXYZ.longitude.radians = 0;
+        fromXYZ.elevation.meters = 0;
+        fromXYZ.setFromXYZ(xyz);
+        near(location.elevation.meters / Geosphere.mean_earth_radius_in_meters,
+            fromXYZ.elevation.meters,
+            eps: 1e-13, relative: false);
+        near(location.latitude.radians, fromXYZ.latitude.radians,
+            eps: 1e-13, relative: false);
+        near(location.longitude.radians, fromXYZ.longitude.radians,
+            eps: 1e-13, relative: false);
+      }
+    }
   });
 
   test('from to xyz', () {
