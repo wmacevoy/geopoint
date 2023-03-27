@@ -296,7 +296,7 @@ abstract class Geopoint {
       sign = str.startsWith('-') ? -1 : 1;
       str = str.substring(1);
     }
-    str = str.replaceAll(',', '');
+    str = str.replaceAll('_', '');
     return sign * double.parse(str);
   }
 

@@ -8,6 +8,8 @@ List<String> places() {
     "salt lake city, utah",
     "paris, france",
     "montrose, colorado",
+    "everest, nepal",
+    "kathmandu, nepal",
     "north",
     "east",
     "west",
@@ -31,6 +33,10 @@ String strLocations(String city) {
       return "37°57'3.72030\"S 144°25'29.52440\"E";
     case "buninyong, australia":
       return "37°39'10.15610\"S 143°55'35.38390\"E";
+    case "everest, nepal":
+      return "27d59m9.8340sN 86d55m21.4428sE 29_032ft";
+    case "kathmandu, nepal":
+      return "27.7172N 85.3240E 4_593ft";
     case "north":
       return "90°N 0°W";
     case "south":
@@ -80,6 +86,16 @@ Geoellipseoid locations(String city) {
           latitude: Angle.fromDegMinSec(-37, 39, 10.15610),
           longitude: Angle.fromDegMinSec(143, 55, 35.38390),
           elevation: Distance.fromMeters(0.0));
+    case "everest, nepal":
+      return Geoellipseoid(
+          latitude: Angle.fromDegMinSec(27, 59, 9.8340),
+          longitude: Angle.fromDegMinSec(86, 55, 21.4428),
+          elevation: Distance.fromFeet(29032));
+    case "kathmandu, nepal":
+      return Geoellipseoid(
+          latitude: Angle.fromDegrees(27.7172),
+          longitude: Angle.fromDegrees(85.3240),
+          elevation: Distance.fromFeet(4593));
     case "north":
       return Geoellipseoid(
           latitude: Angle.fromDegMinSec(90, 0, 0),

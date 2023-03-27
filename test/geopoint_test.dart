@@ -193,9 +193,36 @@ void testGeopoint() {
       for (var dstName in places()) {
         if (dstName == srcName) continue;
         Geopoint dst = locations(dstName);
+        print("$srcName $dstName");
+        if (srcName == "west" && dstName == "everest, nepal") {
+          print("here");
+        }
         var d1 = src.sphere().distanceToInMeters(dst.sphere());
         var d2 = src.ellipseoid().distanceToInMeters(dst.ellipseoid());
         near(d1, d2, eps: 1e-2, relative: true);
+      }
+    }
+  });
+  test('height', () {
+    for (var place in places()) {
+      Geopoint loc = locations(place);
+      for (var delta in [
+        0.0,
+        1.0,
+        -1.0,
+        10.0,
+        -10.0,
+        100.0,
+        1000.0,
+        -1000.0,
+        10000.0,
+        -10000,
+        100000.0
+      ]) {
+        var locDelta = loc.clone();
+        locDelta.elevation.meters = locDelta.elevation.meters + delta;
+        var dist = loc.distanceTo(locDelta).meters;
+        near(delta.abs().toDouble(), dist, eps: 1e-6, relative: true);
       }
     }
   });
