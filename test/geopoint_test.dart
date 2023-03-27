@@ -1,9 +1,11 @@
 import 'dart:math';
+import 'package:geopoint/src/geoellipseoid.dart';
 import 'package:geopoint/src/geosphere.dart';
 import 'package:test/test.dart';
 import 'near.dart';
 import 'locations.dart';
 import 'package:geopoint/src/geopoint.dart';
+import 'package:geopoint/src/measure.dart';
 
 double cosm1(double x) {
   if (x.abs() < 1e-2) {
@@ -75,6 +77,24 @@ void testArcSegmentLength() {
 }
 
 void testGeopoint() {
+  test('parse impl syntax', () {
+    // all private so in Geopoint
+    Geopoint.implTest();
+  });
+
+  test('parse', () {
+    for (var place in places()) {
+      Geopoint p = locations(place);
+      Geopoint q = p.clone();
+      q.elevation.meters = 1e9;
+      q.latitude.radians = 1e9;
+      q.longitude.radians = 1e9;
+
+      String strLoc = strLocations(place);
+      q.setFromString(strLoc);
+      expect(q.distanceTo(p).meters, lessThan(0.001));
+    }
+  });
   test('grand junction to paris', () {
     final src = locations("grand junction, colorado");
     final dst = locations("paris, france");

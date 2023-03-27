@@ -1,6 +1,5 @@
 import 'package:geopoint/src/geoellipseoid.dart';
 import 'package:geopoint/src/measure.dart';
-import 'package:geopoint/src/geopoint.dart';
 
 List<String> places() {
   return <String>[
@@ -14,6 +13,34 @@ List<String> places() {
     "west",
     "south",
   ];
+}
+
+String strLocations(String city) {
+  switch (city) {
+    case "portland, oregon":
+      return "45°32'13\"N 122°39'0\"W 50ft";
+    case "grand junction, colorado":
+      return "39°5'11\"N 108°34'7\"W 4583ft";
+    case "salt lake city, utah":
+      return "40°46'43\"N 111°55'53\"W 4226ft";
+    case "montrose, colorado":
+      return "38°28'9\"N 107°51'38\"W 5807ft";
+    case "paris, france":
+      return "48°51'36\"N 2°20'24\"E 35m";
+    case "flindlers peak, australia":
+      return "37°57'3.72030\"S 144°25'29.52440\"E";
+    case "buninyong, australia":
+      return "37°39'10.15610\"S 143°55'35.38390\"E";
+    case "north":
+      return "90°N 0°W";
+    case "south":
+      return "90°S 0°E";
+    case "east":
+      return "0°N 90°E";
+    case "west":
+      return "0°N 90°W";
+  }
+  throw Exception("no such city");
 }
 
 Geoellipseoid locations(String city) {

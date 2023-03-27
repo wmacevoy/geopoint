@@ -170,6 +170,14 @@ class Geoellipseoid extends Geopoint {
     setFromXYZ(XYZ);
   }
 
+  Geoellipseoid.fromString(String str)
+      : super(
+            latitude: Angle.fromRadians(0),
+            longitude: Angle.fromRadians(0),
+            elevation: Distance.fromMeters(0)) {
+    setFromString(str);
+  }
+
   @override
   Geoellipseoid ellipseoid() => this;
 
