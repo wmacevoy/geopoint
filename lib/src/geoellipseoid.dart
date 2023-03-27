@@ -73,6 +73,15 @@ class Geoellipseoid extends Geopoint {
     elevation.meters = h;
   }
 
+  static Geoellipseoid _flatten(Geopoint p) {
+    return p.elevation.meters == 0
+        ? p.ellipseoid()
+        : Geoellipseoid(
+            latitude: p.latitude,
+            longitude: p.longitude,
+            elevation: Distance.fromMeters(0));
+  }
+
   @override
   void implSetFromMidpoint(Geopoint gp, Geopoint gq) {
     final p = gp.ellipseoid();
@@ -87,17 +96,8 @@ class Geoellipseoid extends Geopoint {
       setFromXYZ(c);
       elevation.meters = (p.elevation.meters + q.elevation.meters) / 2.0;
     } else {
-      Geoellipseoid flatten(Geopoint p) {
-        return p.elevation.meters == 0
-            ? p.ellipseoid()
-            : Geoellipseoid(
-                latitude: latitude,
-                longitude: longitude,
-                elevation: Distance.fromMeters(0));
-      }
-
-      final p0 = flatten(p);
-      final q0 = flatten(q);
+      final p0 = _flatten(p);
+      final q0 = _flatten(q);
       final sn = (p0.toXYZ() - q0.toXYZ()).normalized();
       final s0 = Geosphere(
           latitude: Angle.fromRadians(0),
@@ -129,7 +129,6 @@ class Geoellipseoid extends Geopoint {
       }
 
       double minDist = 4 * Geosphere.mean_earth_radius_in_meters;
-      double minTheta = 0;
       Geoellipseoid? minM;
 
       for (var path = 0; path < paths; ++path) {
@@ -143,7 +142,6 @@ class Geoellipseoid extends Geopoint {
           double d = p0.distanceToInMeters(m) + m.distanceToInMeters(q0);
           if (d < minDist) {
             minDist = d;
-            minTheta = theta;
             minM = m;
           }
         }

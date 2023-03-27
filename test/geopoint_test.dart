@@ -216,7 +216,7 @@ void testGeopoint() {
         1000.0,
         -1000.0,
         10000.0,
-        -10000,
+        -10000.0,
         100000.0
       ]) {
         var locDelta = loc.clone();
